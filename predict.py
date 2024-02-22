@@ -29,7 +29,7 @@ UNET_CACHE = "unet-cache"
 BASE_CACHE = "checkpoints"
 SAFETY_CACHE = "safety-cache"
 FEATURE_EXTRACTOR = "feature-extractor"
-MODEL_URL = "https://weights.replicate.delivery/default/sdxl/sdxl-1.0.tar"
+MODEL_URL = "https://weights.replicate.delivery/default/sdxl-lightning/sdxl-1.0-base-lightning.tar"
 SAFETY_URL = "https://weights.replicate.delivery/default/sdxl/safety-1.0.tar"
 UNET_URL = "https://weights.replicate.delivery/default/comfy-ui/unet/sdxl_lightning_4step_unet.pth.tar"
 
@@ -82,6 +82,7 @@ class Predictor(BasePredictor):
             torch_dtype=torch.float16,
             variant="fp16",
             cache_dir=BASE_CACHE,
+            local_files_only=True,
         ).to("cuda")
         unet_path = os.path.join(UNET_CACHE, UNET)
         self.pipe.unet.load_state_dict(torch.load(unet_path, map_location="cuda"))
@@ -138,7 +139,7 @@ class Predictor(BasePredictor):
             description="Random seed. Leave blank to randomize the seed", default=None
         ),
         disable_safety_checker: bool = Input(
-            description="Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety",
+            description="Disable safety checker for generated images",
             default=False,
         ),
     ) -> List[Path]:
