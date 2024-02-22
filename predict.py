@@ -101,7 +101,7 @@ class Predictor(BasePredictor):
     @torch.inference_mode()
     def predict(
         self,
-        prompt: str = Input(description="Input prompt", default="A girl smiling"),
+        prompt: str = Input(description="Input prompt", default="A superhero smiling"),
         negative_prompt: str = Input(
             description="Negative Input prompt", default="worst quality, low quality"
         ),
