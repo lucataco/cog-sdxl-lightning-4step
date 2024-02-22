@@ -13,5 +13,10 @@ __pycache__
 .pytest_cache
 .ruff_cache
 
+# Exclude model cache files
+safety-cache
+unet-cache
+checkpoints
+
 # Exclude Python virtual environment
 /venv

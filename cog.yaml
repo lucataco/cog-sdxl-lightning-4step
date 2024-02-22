@@ -7,14 +7,12 @@ build:
   python_packages:
     - "accelerate"
     - "diffusers"
-    - "hf_transfer"
-    - "huggingface_hub"
     - "torch==2.0.1"
     - "torchvision==0.15.2"
     - "transformers"
 
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.3.1/pget" && chmod +x /usr/local/bin/pget
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.6.2/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"

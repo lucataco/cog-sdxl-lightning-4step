@@ -9,7 +9,6 @@ import subprocess
 import numpy as np
 from typing import List
 from transformers import CLIPImageProcessor
-from huggingface_hub import hf_hub_download
 from diffusers import (
     StableDiffusionXLPipeline,
     DDIMScheduler,
@@ -24,19 +23,21 @@ from diffusers.pipelines.stable_diffusion.safety_checker import (
     StableDiffusionSafetyChecker,
 )
 
-MODEL_NAME = "ByteDance/SDXL-Lightning"
-MODEL_CKPT = "sdxl_lightning_4step_unet.pth"
+UNET = "sdxl_lightning_4step_unet.pth"
 MODEL_BASE = "stabilityai/stable-diffusion-xl-base-1.0"
-CKPT_CACHE = "unet-cache"
+UNET_CACHE = "unet-cache"
 BASE_CACHE = "checkpoints"
 SAFETY_CACHE = "safety-cache"
 FEATURE_EXTRACTOR = "feature-extractor"
-MODEL_URL = "https://weights.replicate.delivery/default/sdxl/sdxl-1.0.tar"
+MODEL_URL = "https://weights.replicate.delivery/default/sdxl-lightning/sdxl-1.0-base-lightning.tar"
 SAFETY_URL = "https://weights.replicate.delivery/default/sdxl/safety-1.0.tar"
+UNET_URL = "https://weights.replicate.delivery/default/comfy-ui/unet/sdxl_lightning_4step_unet.pth.tar"
+
 
 class KarrasDPM:
     def from_config(config):
         return DPMSolverMultistepScheduler.from_config(config, use_karras_sigmas=True)
+
 
 SCHEDULERS = {
     "DDIM": DDIMScheduler,
@@ -49,6 +50,7 @@ SCHEDULERS = {
     "DPM++2MSDE": KDPM2AncestralDiscreteScheduler,
 }
 
+
 def download_weights(url, dest):
     start = time.time()
     print("downloading url: ", url)
@@ -56,11 +58,10 @@ def download_weights(url, dest):
     subprocess.check_call(["pget", "-x", url, dest], close_fds=False)
     print("downloading took: ", time.time() - start)
 
+
 class Predictor(BasePredictor):
     def setup(self) -> None:
         """Load the model into memory to make running multiple predictions efficient"""
-        # Enable faster download speed
-        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
         start = time.time()
         print("Loading safety checker...")
         if not os.path.exists(SAFETY_CACHE):
@@ -69,8 +70,8 @@ class Predictor(BasePredictor):
         if not os.path.exists(BASE_CACHE):
             download_weights(MODEL_URL, BASE_CACHE)
         print("Loading Unet")
-        if not os.path.exists(CKPT_CACHE):
-            hf_hub_download(MODEL_NAME, MODEL_CKPT, local_dir=CKPT_CACHE, local_dir_use_symlinks=False)
+        if not os.path.exists(UNET_CACHE):
+            download_weights(UNET_URL, UNET_CACHE)
         self.safety_checker = StableDiffusionSafetyChecker.from_pretrained(
             SAFETY_CACHE, torch_dtype=torch.float16
         ).to("cuda")
@@ -81,8 +82,9 @@ class Predictor(BasePredictor):
             torch_dtype=torch.float16,
             variant="fp16",
             cache_dir=BASE_CACHE,
-        ).to('cuda')
-        unet_path = os.path.join(CKPT_CACHE, MODEL_CKPT)
+            local_files_only=True,
+        ).to("cuda")
+        unet_path = os.path.join(UNET_CACHE, UNET)
         self.pipe.unet.load_state_dict(torch.load(unet_path, map_location="cuda"))
         print("setup took: ", time.time() - start)
 
@@ -95,26 +97,20 @@ class Predictor(BasePredictor):
             images=np_image,
             clip_input=safety_checker_input.pixel_values.to(torch.float16),
         )
-        return image, has_nsfw_concept    
+        return image, has_nsfw_concept
 
     @torch.inference_mode()
     def predict(
         self,
-        prompt: str = Input(
-            description="Input prompt",
-            default="A girl smiling"
-        ),
+        prompt: str = Input(description="Input prompt", default="A superhero smiling"),
         negative_prompt: str = Input(
-            description="Negative Input prompt",
-            default="worst quality, low quality"
+            description="Negative Input prompt", default="worst quality, low quality"
         ),
         width: int = Input(
-            description="Width of output image. Recommended 1024 or 1280",
-            default=1024
+            description="Width of output image. Recommended 1024 or 1280", default=1024
         ),
         height: int = Input(
-            description="Height of output image. Recommended 1024 or 1280",
-            default=1024
+            description="Height of output image. Recommended 1024 or 1280", default=1024
         ),
         num_outputs: int = Input(
             description="Number of images to output.",
@@ -128,18 +124,24 @@ class Predictor(BasePredictor):
             default="K_EULER",
         ),
         num_inference_steps: int = Input(
-            description="Number of denoising steps. 4 for best results", ge=1, le=10, default=4
+            description="Number of denoising steps. 4 for best results",
+            ge=1,
+            le=10,
+            default=4,
         ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance. Recommended 7-8", ge=0, le=50, default=0
+            description="Scale for classifier-free guidance. Recommended 7-8",
+            ge=0,
+            le=50,
+            default=0,
         ),
         seed: int = Input(
             description="Random seed. Leave blank to randomize the seed", default=None
         ),
         disable_safety_checker: bool = Input(
-            description="Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety",
-            default=False
-        )
+            description="Disable safety checker for generated images",
+            default=False,
+        ),
     ) -> List[Path]:
         """Run a single prediction on the model"""
         if seed is None:
@@ -153,7 +155,9 @@ class Predictor(BasePredictor):
         sdxl_kwargs["height"] = height
         pipe = self.pipe
 
-        pipe.scheduler = SCHEDULERS[scheduler].from_config(pipe.scheduler.config, timestep_spacing="trailing")
+        pipe.scheduler = SCHEDULERS[scheduler].from_config(
+            pipe.scheduler.config, timestep_spacing="trailing"
+        )
 
         common_args = {
             "prompt": [prompt] * num_outputs,
@@ -180,7 +184,7 @@ class Predictor(BasePredictor):
 
         if len(output_paths) == 0:
             raise Exception(
-                f"NSFW content detected. Try running it again, or try a different prompt."
+                "NSFW content detected. Try running it again, or try a different prompt."
             )
 
         return output_paths
