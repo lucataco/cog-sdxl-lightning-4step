@@ -149,6 +149,10 @@ class Predictor(BasePredictor):
         print(f"Using seed: {seed}")
         generator = torch.Generator("cuda").manual_seed(seed)
 
+        # OOMs can leave vae in bad state
+        if self.pipe.vae.dtype == torch.float32:
+            self.pipe.vae.to(dtype=torch.float16)
+
         sdxl_kwargs = {}
         print(f"Prompt: {prompt}")
         sdxl_kwargs["width"] = width
