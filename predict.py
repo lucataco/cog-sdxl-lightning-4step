@@ -130,7 +130,7 @@ class Predictor(BasePredictor):
             default=4,
         ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance. Recommended 7-8",
+            description="Scale for classifier-free guidance",
             ge=0,
             le=50,
             default=0,
