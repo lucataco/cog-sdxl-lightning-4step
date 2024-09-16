@@ -102,15 +102,15 @@ class Predictor(BasePredictor):
     @torch.inference_mode()
     def predict(
         self,
-        prompt: str = Input(description="Input prompt", default="A superhero smiling"),
+        prompt: str = Input(description="Input prompt", default="self-portrait of a woman, lightning in the background"),
         negative_prompt: str = Input(
             description="Negative Input prompt", default="worst quality, low quality"
         ),
         width: int = Input(
-            description="Width of output image. Recommended 1024 or 1280", default=1024
+            description="Width of output image. Recommended 1024 or 1280", default=1024, ge=256, le=1280
         ),
         height: int = Input(
-            description="Height of output image. Recommended 1024 or 1280", default=1024
+            description="Height of output image. Recommended 1024 or 1280", default=1024, ge=256, le=1280
         ),
         num_outputs: int = Input(
             description="Number of images to output.",
