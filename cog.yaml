@@ -13,7 +13,7 @@ build:
     - "numpy<2"
 
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/cog/releases/download/v0.9.20/cog_Linux_x86_64" && chmod +x /usr/local/bin/pget
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
