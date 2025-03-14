@@ -60,6 +60,8 @@ def download_weights(url, dest):
 
 
 class Predictor(BasePredictor):
+    test_inputs = {"seed": 0}
+
     def setup(self) -> None:
         """Load the model into memory to make running multiple predictions efficient"""
         start = time.time()
@@ -120,7 +122,7 @@ class Predictor(BasePredictor):
         ),
         scheduler: str = Input(
             description="scheduler",
-            choices=SCHEDULERS.keys(),
+            choices=list(SCHEDULERS.keys()),
             default="K_EULER",
         ),
         num_inference_steps: int = Input(
@@ -136,7 +138,7 @@ class Predictor(BasePredictor):
             default=0,
         ),
         seed: int = Input(
-            description="Random seed. Leave blank to randomize the seed", default=None
+            description="Random seed. Leave blank to randomize the seed", default=0
         ),
         disable_safety_checker: bool = Input(
             description="Disable safety checker for generated images",
