@@ -1,0 +1,6 @@
+accelerate==0.34.2
+diffusers==0.30.2
+torch==2.3.1
+torchvision==0.18.1
+transformers==4.44.2
+numpy<2
